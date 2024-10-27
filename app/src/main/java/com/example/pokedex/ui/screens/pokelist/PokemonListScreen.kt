@@ -1,11 +1,14 @@
 package com.example.pokedex.ui.screens.pokelist
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,10 +39,7 @@ fun PokemonListScreen(
     val state = viewModel.state.value
     val searchText = viewModel.searchText.value
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        //barra de búsqueda
+    Column(modifier = Modifier.fillMaxSize()) {
         SearchBar(
             searchText = searchText,
             onSearchChange = viewModel::onSearchTextChange,
@@ -59,10 +59,32 @@ fun PokemonListScreen(
                             navController.navigate("pokemon_detail/${pokemon.id}")
                         }
                     )
+
+                    //solo cargamos más si no estamos buscando
+                    if(pokemon == state.pokemons.last() && !state.endReached && searchText.isEmpty()) {
+                        viewModel.loadPokemonPaginated()
+                    }
+                }
+
+                //item pa mostrar loading al final mientras carga más
+                if(state.isLoading && searchText.isEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
                 }
             }
 
-            if(state.isLoading) {
+            //loading principal solo pa búsquedas
+            if(state.isLoading && searchText.isNotEmpty()) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -76,7 +98,6 @@ fun PokemonListScreen(
                 )
             }
 
-            //mensaje si no hay resultados
             if(!state.isLoading && state.pokemons.isEmpty() && searchText.isNotEmpty()) {
                 Text(
                     text = "No encontramos ningún Pokémon :(",

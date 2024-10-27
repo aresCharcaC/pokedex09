@@ -30,82 +30,58 @@ class PokemonListViewModel @Inject constructor(
     private val _state = mutableStateOf(PokemonListState())
     val state: State<PokemonListState> = _state
 
-    //estado pa la búsqueda
     private val _searchText = mutableStateOf("")
     val searchText: State<String> = _searchText
 
-    //para no hacer muchas llamadas seguidas
     private var searchJob: Job? = null
 
-    //cuando se crea el viewmodel cargamos la primera página
     init {
         loadPokemonPaginated()
     }
 
-    //función pa buscar
+    //actualizamos la función de búsqueda
     fun onSearchTextChange(text: String) {
         _searchText.value = text
-        //cancelamos búsqueda anterior si existe
         searchJob?.cancel()
-        //si está vacío mostramos la lista normal
+
         if(text.isEmpty()) {
+            //si limpiamos la búsqueda, reseteamos y volvemos a la lista paginada
+            _state.value = _state.value.copy(
+                pokemons = emptyList(),
+                page = 0,
+                endReached = false
+            )
             loadPokemonPaginated()
             return
         }
-        //iniciamos nueva búsqueda con delay
+
         searchJob = viewModelScope.launch {
-            delay(500L) //esperamos q termine de escribir
+            delay(500L)
             searchPokemon(text)
         }
     }
 
-    private suspend fun searchPokemon(query: String) {
-        _state.value = _state.value.copy(isLoading = true)
-        when(val result = repository.searchPokemon(query.lowercase())) {
-            is Resource.Success -> {
-                _state.value = _state.value.copy(
-                    pokemons = result.data,
-                    isLoading = false,
-                    error = null
-                )
-            }
-            is Resource.Error -> {
-                _state.value = _state.value.copy(
-                    pokemons = emptyList(),
-                    isLoading = false,
-                    error = result.message
-                )
-            }
-            is Resource.Loading -> {
-                _state.value = _state.value.copy(isLoading = true)
-            }
-        }
-    }
-
-    //esto carga más pokemon cuando llegas al final de la lista
+    //la paginación normal
     fun loadPokemonPaginated() {
+        //solo paginamos si no estamos buscando
+        if(_searchText.value.isNotEmpty()) return
+
         viewModelScope.launch {
-            //pa q no cargue más si ya llegamos al final o está cargando
             if(_state.value.endReached || _state.value.isLoading) {
                 return@launch
             }
 
             _state.value = _state.value.copy(isLoading = true)
 
-            //cada página trae 20 pokemon
             val page = _state.value.page
-            val result = repository.getPokemonList(20, page * 20)
-
-            when(result) {
+            when(val result = repository.getPokemonList(20, page * 20)) {
                 is Resource.Success -> {
-                    //agregamos los nuevos pokemon a la lista q ya teníamos
+                    //agregamos los nuevos pokemon a la lista existente
                     val pokemons = _state.value.pokemons + result.data
-                    //si trajo menos de 20 es q ya no hay más
-                    val endReached = result.data.size < 20
                     _state.value = _state.value.copy(
                         pokemons = pokemons,
                         page = page + 1,
-                        endReached = endReached,
+                        endReached = result.data.isEmpty(),
                         isLoading = false
                     )
                 }
@@ -118,6 +94,30 @@ class PokemonListViewModel @Inject constructor(
                 is Resource.Loading -> {
                     _state.value = _state.value.copy(isLoading = true)
                 }
+            }
+        }
+    }
+
+    private suspend fun searchPokemon(query: String) {
+        _state.value = _state.value.copy(isLoading = true)
+        when(val result = repository.searchPokemon(query.lowercase())) {
+            is Resource.Success -> {
+                _state.value = _state.value.copy(
+                    pokemons = result.data,
+                    isLoading = false,
+                    error = null,
+                    //pa la búsqueda no necesitamos paginación
+                    endReached = true
+                )
+            }
+            is Resource.Error -> {
+                _state.value = _state.value.copy(
+                    error = result.message,
+                    isLoading = false
+                )
+            }
+            is Resource.Loading -> {
+                _state.value = _state.value.copy(isLoading = true)
             }
         }
     }
