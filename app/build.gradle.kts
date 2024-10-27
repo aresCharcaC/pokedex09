@@ -4,7 +4,6 @@ plugins {
     id("kotlin-kapt") // Correcto para Hilt
     alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
     id("com.google.dagger.hilt.android") // Mantener solo este para Hilt
-    alias(libs.plugins.google.gms.google.services)
     id("androidx.navigation.safeargs.kotlin") // Safe Args
     id("kotlin-android") // Kotlin plugin necesario
 }
