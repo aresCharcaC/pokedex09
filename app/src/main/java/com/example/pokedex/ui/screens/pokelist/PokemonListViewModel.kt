@@ -8,6 +8,8 @@ import com.example.pokedex.data.repository.PokemonRepository
 import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,13 +27,59 @@ class PokemonListViewModel @Inject constructor(
     private val repository: PokemonRepository
 ) : ViewModel() {
 
-    //pa mantener el estado de la pantalla
     private val _state = mutableStateOf(PokemonListState())
     val state: State<PokemonListState> = _state
+
+    //estado pa la búsqueda
+    private val _searchText = mutableStateOf("")
+    val searchText: State<String> = _searchText
+
+    //para no hacer muchas llamadas seguidas
+    private var searchJob: Job? = null
 
     //cuando se crea el viewmodel cargamos la primera página
     init {
         loadPokemonPaginated()
+    }
+
+    //función pa buscar
+    fun onSearchTextChange(text: String) {
+        _searchText.value = text
+        //cancelamos búsqueda anterior si existe
+        searchJob?.cancel()
+        //si está vacío mostramos la lista normal
+        if(text.isEmpty()) {
+            loadPokemonPaginated()
+            return
+        }
+        //iniciamos nueva búsqueda con delay
+        searchJob = viewModelScope.launch {
+            delay(500L) //esperamos q termine de escribir
+            searchPokemon(text)
+        }
+    }
+
+    private suspend fun searchPokemon(query: String) {
+        _state.value = _state.value.copy(isLoading = true)
+        when(val result = repository.searchPokemon(query.lowercase())) {
+            is Resource.Success -> {
+                _state.value = _state.value.copy(
+                    pokemons = result.data,
+                    isLoading = false,
+                    error = null
+                )
+            }
+            is Resource.Error -> {
+                _state.value = _state.value.copy(
+                    pokemons = emptyList(),
+                    isLoading = false,
+                    error = result.message
+                )
+            }
+            is Resource.Loading -> {
+                _state.value = _state.value.copy(isLoading = true)
+            }
+        }
     }
 
     //esto carga más pokemon cuando llegas al final de la lista

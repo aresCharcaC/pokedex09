@@ -13,9 +13,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.pokedex.ui.screens.pokedetail.PokemonDetailScreen
 import com.example.pokedex.ui.screens.pokelist.PokemonListScreen
 import com.example.pokedex.ui.theme.PokedexTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -39,7 +42,15 @@ class MainActivity : ComponentActivity() {
                         composable("pokemon_list") {
                             PokemonListScreen(navController = navController)
                         }
-                        //aki después agregaremos la ruta del detalle
+                        //ruta nueva pa el detalle
+                        composable(
+                            route = "pokemon_detail/{pokemonId}",
+                            arguments = listOf(
+                                navArgument("pokemonId") { type = NavType.IntType }
+                            )
+                        ) {
+                            PokemonDetailScreen(navController = navController)
+                        }
                     }
                 }
             }

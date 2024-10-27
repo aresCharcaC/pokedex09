@@ -5,6 +5,7 @@ import com.example.pokedex.domain.model.Pokemon
 import com.example.pokedex.domain.model.PokemonDetail
 import com.example.pokedex.domain.model.Stat
 import com.example.pokedex.util.Resource
+import java.util.Locale
 import javax.inject.Inject
 
 //aki va toda la logica de datos
@@ -55,4 +56,38 @@ class PokemonRepository @Inject constructor(
             Resource.Error("No pudimos cargar el pokemon: ${e.message}")
         }
     }
+
+    suspend fun searchPokemon(query: String): Resource<List<Pokemon>> {
+        return try {
+            //traemos todos (la lista básica es liviana)
+            val response = api.getPokemonList(limit = 1500, offset = 0)
+            //filtramos los q coinciden
+            val filtered = response.results
+                .filter { it.name.contains(query) }
+                .mapIndexed { _, result ->
+                    //sacamos el id de la url
+                    val id = result.url.split("/")
+                        .dropLast(1)
+                        .last()
+                        .toInt()
+                    Pokemon(
+                        id = id,
+                        name = result.name.capitalize(Locale.ROOT),
+                        imageUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/$id.png"
+                    )
+                }
+            Resource.Success(filtered)
+        } catch(e: Exception) {
+            Resource.Error("No pudimos buscar: ${e.message}")
+        }
+    }
 }
+
+data class PokemonListState(
+    val pokemons: List<Pokemon> = emptyList(),
+    val isLoading: Boolean = false,
+    val isSearching: Boolean = false,
+    val error: String? = null,
+    val endReached: Boolean = false,
+    val page: Int = 0
+)
