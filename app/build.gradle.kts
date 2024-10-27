@@ -1,6 +1,12 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("kotlin-kapt") // Correcto para Hilt
+    alias(libs.plugins.google.android.libraries.mapsplatform.secrets.gradle.plugin)
+    id("com.google.dagger.hilt.android") // Mantener solo este para Hilt
+    alias(libs.plugins.google.gms.google.services)
+    id("androidx.navigation.safeargs.kotlin") // Safe Args
+    id("kotlin-android") // Kotlin plugin necesario
 }
 
 android {
@@ -54,6 +60,11 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
+    // Hilt
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-android-compiler:2.48") // Compiler para Hilt
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+
     // Coil para cargar imágenes
     implementation("io.coil-kt:coil-compose:2.4.0")
 
@@ -61,8 +72,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-
-
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
